@@ -51,15 +51,12 @@ export default function QuoteMaker() {
   const handleDownload = useCallback(async () => {
     if (quoteCardRef.current) {
       try {
-        // Create a canvas element
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
 
-        // Set canvas size
         canvas.width = 800;
         canvas.height = 600;
 
-        // Create gradient background
         const gradient = ctx.createLinearGradient(
           0,
           0,
@@ -69,21 +66,17 @@ export default function QuoteMaker() {
         gradient.addColorStop(0, '#faf5ff');
         gradient.addColorStop(1, '#fdf2f8');
 
-        // Fill background
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Add border
         ctx.strokeStyle = '#d8b4fe';
         ctx.lineWidth = 2;
         ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
 
-        // Set up text styling
         ctx.fillStyle = '#1f2937';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
-        // Draw quote text
         const maxWidth = canvas.width - 100;
         const words = quote.split(' ');
         let line = '';
@@ -105,17 +98,14 @@ export default function QuoteMaker() {
           }
         }
 
-        // Draw remaining text
         if (line.trim()) {
           ctx.fillText(`"${line.trim()}"`, canvas.width / 2, y);
         }
 
-        // Draw attribution
         ctx.font = '16px sans-serif';
         ctx.fillStyle = '#6b7280';
         ctx.fillText('- v0 Quote Maker', canvas.width / 2, canvas.height - 80);
 
-        // Convert to image and download
         const image = canvas.toDataURL('image/png');
         const link = document.createElement('a');
         link.href = image;
