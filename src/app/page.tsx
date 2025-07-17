@@ -1,4 +1,4 @@
-import QuoteMaker from './quotemaker';
+import QuoteMaker from '@/components/pages';
 
 const Home = () => {
   return <QuoteMaker />;
