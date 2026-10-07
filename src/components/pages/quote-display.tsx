@@ -2,21 +2,18 @@
 
 import { Download, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { templates } from '@/lib/templates'; // Assuming templates are in lib/templates
+import { QuoteCard } from '@/components/quote/quote-card';
+import { getFontById } from '@/lib/fonts';
+import { getTemplateById } from '@/lib/templates';
+import { useQuoteAppear } from '@/components/motion/use-quote-appear';
 import type { RefObject } from 'react';
 
 interface QuoteDisplayProps {
   quote: string;
   authorName: string;
   selectedTemplate: string;
-  quoteCardRef: RefObject<HTMLDivElement>;
+  selectedFont: string;
+  quoteCardRef: RefObject<HTMLDivElement | null>;
   handleDownload: () => void;
   handleShareEmail: () => void;
 }
@@ -25,67 +22,67 @@ export function QuoteDisplay({
   quote,
   authorName,
   selectedTemplate,
+  selectedFont,
   quoteCardRef,
   handleDownload,
   handleShareEmail,
 }: QuoteDisplayProps) {
-  const currentTemplate =
-    templates.find((t) => t.id === selectedTemplate) || templates[0];
+  const currentTemplate = getTemplateById(selectedTemplate);
+  const currentFont = getFontById(selectedFont);
+  const appearRef = useQuoteAppear(quote);
 
   return (
-    <Card className='bg-white/80 backdrop-blur-sm shadow-lg border-0'>
-      <CardHeader className='text-center'>
-        <CardTitle className='text-2xl font-bold text-gray-800'>
-          Your Quote
-        </CardTitle>
-        <CardDescription className='text-'>
-          Preview with {currentTemplate.name} template
-        </CardDescription>
-      </CardHeader>
-      <CardContent className='space-y-4'>
-        {quote ? (
-          <>
-            <div
-              ref={quoteCardRef}
-              className='p-6 text-center rounded-lg shadow-md min-h-[200px] flex flex-col justify-center'
-              style={{
-                background: `linear-gradient(135deg, ${currentTemplate.colors.bg1}, ${currentTemplate.colors.bg2})`,
-                border: `2px solid ${currentTemplate.colors.border}`,
-                color: currentTemplate.colors.text,
-              }}
+    <div className='flex flex-col border border-[var(--line)] bg-surface p-7 md:p-9'>
+      <div className='mb-8'>
+        <p className='text-[10px] font-medium uppercase tracking-[0.32em] text-muted'>
+          Preview
+        </p>
+        <h3 className='font-display mt-3 text-2xl font-medium tracking-tight text-ink md:text-3xl'>
+          Your poster
+        </h3>
+        <p className='mt-2 text-sm font-light leading-relaxed text-muted'>
+          {currentTemplate.name} · {currentFont.name}
+        </p>
+      </div>
+
+      {quote ? (
+        <div ref={appearRef} className='flex flex-1 flex-col gap-4'>
+          <QuoteCard
+            innerRef={quoteCardRef}
+            quote={quote}
+            author={authorName || 'ThinkWords'}
+            templateId={selectedTemplate}
+            fontId={selectedFont}
+            size='lg'
+            className='min-h-[260px] flex-1 rounded-none'
+          />
+
+          <div className='flex flex-col gap-2 sm:flex-row'>
+            <Button
+              onClick={handleDownload}
+              className='flex h-11 flex-1 items-center justify-center gap-2 rounded-none bg-ink text-[11px] font-medium uppercase tracking-[0.18em] text-paper hover:bg-ink/90'
             >
-              <p className='text-lg md:text-xl font-semibold italic leading-relaxed mb-4'>
-                &quot;{quote}&quot;
-              </p>
-              <p className='text-sm opacity-80'>
-                {authorName ? `— ${authorName}` : '— Quote Maker'}
-              </p>
-            </div>
-            <div className='flex flex-col sm:flex-row gap-2'>
-              <Button
-                onClick={handleDownload}
-                className='flex-1 flex items-center justify-center gap-2 bg-green-600 text-white hover:bg-green-700 transition-colors'
-              >
-                <Download className='h-4 w-4' /> Download PNG
-              </Button>
-              <Button
-                onClick={handleShareEmail}
-                className='flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white hover:bg-blue-700 transition-colors'
-              >
-                <Mail className='h-4 w-4' /> Share Email
-              </Button>
-            </div>
-          </>
-        ) : (
-          <div className='text-center text-gray-500 py-12'>
-            <p className='text-lg mb-2'>No quote generated yet</p>
-            <p className='text-sm'>
-              Fill in the form and click &quot;Generate Quote&quot; to create
-              your masterpiece!
-            </p>
+              <Download className='h-4 w-4' /> Download
+            </Button>
+            <Button
+              onClick={handleShareEmail}
+              variant='outline'
+              className='flex h-11 flex-1 items-center justify-center gap-2 rounded-none border-[var(--line)] bg-transparent text-[11px] font-medium uppercase tracking-[0.18em] text-ink hover:bg-paper-2'
+            >
+              <Mail className='h-4 w-4' /> Email
+            </Button>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      ) : (
+        <div className='flex min-h-[260px] flex-1 flex-col items-center justify-center border border-dashed border-[var(--line)] bg-paper-2/70 px-6 py-12 text-center'>
+          <p className='font-display text-xl italic text-mist'>
+            Your quote will appear here
+          </p>
+          <p className='mt-2 max-w-[220px] text-sm font-light text-muted'>
+            Fill in the form and generate when you&apos;re ready.
+          </p>
+        </div>
+      )}
+    </div>
   );
 }

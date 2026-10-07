@@ -27,9 +27,7 @@ export async function POST(request: Request) {
 and evokes a feeling of '${emotion}'. Only return the quote text.`;
 
     const { text } = await generateText({
-      model: groq('llama3-8b-8192', {
-        apiKey: process.env.GROQ_API_KEY,
-      }),
+      model: groq('llama3-8b-8192'),
       prompt,
     });
 
