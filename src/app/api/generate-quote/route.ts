@@ -1,15 +1,18 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
-import { generateText } from 'ai'; // AI SDK core [^1]
-import { groq } from '@ai-sdk/groq'; // Groq integration
+import { generateText } from 'ai';
+import { groq } from '@ai-sdk/groq';
 
 export async function POST(request: Request) {
   try {
-    // --- ADD THESE TWO LINES FOR DIAGNOSIS ---
-    console.log('--- DIAGNOSIS START ---');
-    console.log('GROQ_API_KEY value:', process.env.GROQ_API_KEY);
-    console.log('--- DIAGNOSIS END ---');
-    // -----------------------------------------
+    if (!process.env.GROQ_API_KEY) {
+      return NextResponse.json(
+        {
+          error:
+            'Groq API key is missing. Set GROQ_API_KEY in Workers secrets or .dev.vars.',
+        },
+        { status: 500 }
+      );
+    }
 
     const { word, emotion } = (await request.json()) as {
       word?: string;
@@ -26,23 +29,21 @@ export async function POST(request: Request) {
     const prompt = `Generate a short, inspirational quote (max 20 words) that includes the word '${word}' \
 and evokes a feeling of '${emotion}'. Only return the quote text.`;
 
+    // groq() reads GROQ_API_KEY from the environment automatically
     const { text } = await generateText({
       model: groq('llama3-8b-8192'),
       prompt,
     });
 
     return NextResponse.json({ quote: text.trim() });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('API /generate-quote error:', err);
-    // Check for specific error messages related to Groq API key
-    if (
-      err.message &&
-      err.message.toLowerCase().includes('api key is missing')
-    ) {
+    const message = err instanceof Error ? err.message : '';
+    if (message.toLowerCase().includes('api key')) {
       return NextResponse.json(
         {
           error:
-            'Groq API key is missing. Please set the GROQ_API_KEY environment variable.',
+            'Groq API key is missing. Set GROQ_API_KEY in Workers secrets or .dev.vars.',
         },
         { status: 500 }
       );
