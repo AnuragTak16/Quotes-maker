@@ -8,5 +8,13 @@ const nextConfig: NextConfig = {
 
 export default nextConfig;
 
-import { initOpenNextCloudflareForDev } from '@opennextjs/cloudflare';
-initOpenNextCloudflareForDev();
+// Local `next dev` only — skip during production / Workers CI builds.
+if (
+  process.env.NODE_ENV !== 'production' &&
+  !process.env.CI &&
+  !process.env.WORKERS_CI
+) {
+  void import('@opennextjs/cloudflare').then(({ initOpenNextCloudflareForDev }) => {
+    initOpenNextCloudflareForDev();
+  });
+}
