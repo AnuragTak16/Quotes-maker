@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { generateText } from 'ai';
-import { groq } from '@ai-sdk/groq';
+import { createGroq } from '@ai-sdk/groq';
 
 export async function POST(request: Request) {
   try {
-    if (!process.env.GROQ_API_KEY) {
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
       return NextResponse.json(
         {
           error:
@@ -13,6 +14,8 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
+
+    const groq = createGroq({ apiKey });
 
     const { word, emotion } = (await request.json()) as {
       word?: string;
@@ -29,7 +32,6 @@ export async function POST(request: Request) {
     const prompt = `Generate a short, inspirational quote (max 20 words) that includes the word '${word}' \
 and evokes a feeling of '${emotion}'. Only return the quote text.`;
 
-    // groq() reads GROQ_API_KEY from the environment automatically
     const { text } = await generateText({
       model: groq('llama3-8b-8192'),
       prompt,
