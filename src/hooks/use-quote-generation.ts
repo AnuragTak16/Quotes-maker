@@ -2,6 +2,17 @@
 
 import { useState, useCallback } from 'react';
 
+const emotionEmojis: Record<string, string> = {
+  happy: '😊',
+  sad: '😢',
+  hopeful: '🌟',
+  calm: '🕊️',
+  energetic: '⚡',
+  reflective: '🤔',
+  mysterious: '🌙',
+  love: '❤️',
+};
+
 export function useQuoteGeneration() {
   const [word, setWord] = useState('');
   const [emotion, setEmotion] = useState('');
@@ -12,11 +23,8 @@ export function useQuoteGeneration() {
   const [error, setError] = useState<string | null>(null);
 
   const generateQuote = useCallback(async () => {
-    if (!word || !emotion) {
-      setQuote(
-        'Please enter a word and select an emotion to generate a quote.'
-      );
-      setError(null);
+    if (!word.trim() || !emotion) {
+      setError('Please enter a word and select a mood.');
       return;
     }
 
@@ -25,44 +33,36 @@ export function useQuoteGeneration() {
     setQuote('');
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
+      const res = await fetch('/api/generate-quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          word: word.trim(),
+          emotion,
+        }),
+      });
 
-      const emotionsMap = {
-        happy: '😊',
-        sad: '😢',
-        hopeful: '🌟',
-        calm: '🕊️',
-        energetic: '⚡',
-        reflective: '🤔',
-        mysterious: '🌙',
-        love: '❤️',
-      };
+      const data = (await res.json()) as { quote?: string; error?: string };
 
-      const sampleQuotes = [
-        `${word} is the ${emotion} journey that shapes our destiny`,
-        `In every ${word}, there lies a ${emotion} truth waiting to be discovered`,
-        `The ${emotion} nature of ${word} reveals the beauty of existence`,
-        `When ${word} meets ${emotion} spirit, magic happens`,
-        `${word} whispers ${emotion} secrets to those who listen`,
-      ];
+      if (!res.ok || !data.quote) {
+        throw new Error(data.error || 'Failed to generate quote.');
+      }
 
-      const randomQuote =
-        sampleQuotes[Math.floor(Math.random() * sampleQuotes.length)];
-      const finalQuote = useEmojis
-        ? `${randomQuote} ${
-            emotionsMap[emotion as keyof typeof emotionsMap] || ''
-          }`
-        : randomQuote;
-
-      setQuote(finalQuote);
+      const text = data.quote.trim().replace(/^["']|["']$/g, '');
+      const emoji = useEmojis ? emotionEmojis[emotion] : undefined;
+      setQuote(emoji ? `${text} ${emoji}` : text);
     } catch (err) {
       console.error('Error generating quote:', err);
-      setError('Failed to generate quote. Please try again.');
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to generate quote. Please try again.'
+      );
       setQuote('');
     } finally {
       setLoading(false);
     }
-  }, [word, emotion, useEmojis]); // authorName is not a dependency for quote generation logic itself
+  }, [word, emotion, useEmojis]);
 
   return {
     word,
@@ -74,7 +74,7 @@ export function useQuoteGeneration() {
     useEmojis,
     setUseEmojis,
     quote,
-    setQuote, // Expose setQuote if you need to clear it from parent
+    setQuote,
     loading,
     error,
     generateQuote,
