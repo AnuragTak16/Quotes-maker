@@ -6,21 +6,22 @@ import { getCloudflareContext } from '@opennextjs/cloudflare';
 /** Model available on this Groq account. */
 const GROQ_MODEL = 'openai/gpt-oss-20b';
 
+/**
+ * On Cloudflare Workers, secrets live on `getCloudflareContext().env`.
+ * Locally (`next dev`), they come from `.env.local` via `process.env`.
+ */
 async function getGroqApiKey(): Promise<string | undefined> {
-  // Local Next.js (.env.local) and Workers runtime (injected into process.env)
-  const fromProcess = process.env.GROQ_API_KEY?.trim();
-  if (fromProcess) return fromProcess;
-
-  // Cloudflare Workers / OpenNext — secrets live on context.env
+  // 1) Cloudflare Workers / OpenNext runtime (preferred)
   try {
     const { env } = await getCloudflareContext({ async: true });
-    const fromCf = (env as { GROQ_API_KEY?: string }).GROQ_API_KEY?.trim();
+    const fromCf = env.GROQ_API_KEY?.trim();
     if (fromCf) return fromCf;
   } catch {
-    // Not running on Cloudflare (e.g. plain next start)
+    // Plain Node / next start without Cloudflare proxy
   }
 
-  return undefined;
+  // 2) Local Next.js (.env.local) fallback
+  return process.env.GROQ_API_KEY?.trim() || undefined;
 }
 
 export async function POST(request: Request) {
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            'GROQ_API_KEY is not set. Locally: add it to .env.local and restart. On Cloudflare: Workers → Settings → Variables and Secrets → add secret GROQ_API_KEY (and use deploy --keep-vars).',
+            'GROQ_API_KEY is not set on the Worker. Add it as a Secret in Cloudflare → Workers → Settings → Variables and Secrets, then redeploy (keep-vars). Locally use .env.local.',
         },
         { status: 500 }
       );
@@ -73,7 +74,7 @@ Requirements:
       return NextResponse.json(
         {
           error:
-            'Groq API key is invalid. Create a new key at console.groq.com and update GROQ_API_KEY.',
+            'Groq API key is invalid. Create a new key at console.groq.com and update the Cloudflare secret GROQ_API_KEY.',
         },
         { status: 401 }
       );
