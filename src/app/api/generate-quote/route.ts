@@ -1,18 +1,36 @@
 import { NextResponse } from 'next/server';
 import { generateText } from 'ai';
 import { createGroq } from '@ai-sdk/groq';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
-/** Model available on this Groq account (llama ids are not listed). */
+/** Model available on this Groq account. */
 const GROQ_MODEL = 'openai/gpt-oss-20b';
+
+async function getGroqApiKey(): Promise<string | undefined> {
+  // Local Next.js (.env.local) and Workers runtime (injected into process.env)
+  const fromProcess = process.env.GROQ_API_KEY?.trim();
+  if (fromProcess) return fromProcess;
+
+  // Cloudflare Workers / OpenNext — secrets live on context.env
+  try {
+    const { env } = await getCloudflareContext({ async: true });
+    const fromCf = (env as { GROQ_API_KEY?: string }).GROQ_API_KEY?.trim();
+    if (fromCf) return fromCf;
+  } catch {
+    // Not running on Cloudflare (e.g. plain next start)
+  }
+
+  return undefined;
+}
 
 export async function POST(request: Request) {
   try {
-    const apiKey = process.env.GROQ_API_KEY;
+    const apiKey = await getGroqApiKey();
     if (!apiKey) {
       return NextResponse.json(
         {
           error:
-            'Groq API key is missing. Set GROQ_API_KEY in .env.local or Workers secrets.',
+            'GROQ_API_KEY is not set. Locally: add it to .env.local and restart. On Cloudflare: Workers → Settings → Variables and Secrets → add secret GROQ_API_KEY (and use deploy --keep-vars).',
         },
         { status: 500 }
       );
@@ -55,26 +73,15 @@ Requirements:
       return NextResponse.json(
         {
           error:
-            'Groq API key is invalid. Create a new key at console.groq.com and update .env.local, then restart the server.',
+            'Groq API key is invalid. Create a new key at console.groq.com and update GROQ_API_KEY.',
         },
         { status: 401 }
       );
     }
     if (lower.includes('model') && lower.includes('not')) {
       return NextResponse.json(
-        {
-          error: `Groq model unavailable: ${message}`,
-        },
+        { error: `Groq model unavailable: ${message}` },
         { status: 502 }
-      );
-    }
-    if (lower.includes('api key is missing') || lower.includes('api key is not set')) {
-      return NextResponse.json(
-        {
-          error:
-            'Groq API key is missing. Set GROQ_API_KEY in .env.local or Workers secrets.',
-        },
-        { status: 500 }
       );
     }
 
